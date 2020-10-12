@@ -1,0 +1,37 @@
+#/bin/bash
+
+source swarm-gen-parse-conf
+
+DIR_CHECKSUMS=()
+while test -f "/etc/swarm-gen/swarm-gen.conf"
+do
+  for (( DIR_INDEX=0; $DIR_INDEX < ${#CONF_DIRECTORIES[@]}; DIR_INDEX++ ))
+  do
+    DIR_DIRECTORY="${CONF_DIRECTORIES[$DIR_INDEX]}"
+    DIR_NOTIFYCMD="${CONF_DIRECTORIES_NOTIFYCMDS[$DIR_INDEX]}"
+    DIR_WAIT="${CONF_DIRECTORIES_WAITS[$DIR_INDEX]}"
+
+
+    if [ -z "${DIR_DIRECTORY}" ]; then
+        echo "Error blank DIR_DIRECTORY value"
+        exit 1
+    fi
+    if [ -z "${DIR_NOTIFYCMD}" ]; then
+        echo "Error blank DIR_NOTIFYCMD value"
+        exit 1
+    fi
+    if [ -z "${DIR_WAIT}" ]; then
+        echo "Error blank DIR_WAIT value"
+        exit 1
+    fi
+
+    DIR_NEW_CHECKSUM=`find ${DIR_DIRECTORY} -type f -exec md5sum {} \;`
+    if [[ ${DIR_CHECKSUMS[$DIR_INDEX]} != $DIR_NEW_CHECKSUM ]]; then
+      sleep $DIR_WAIT
+      echo "Directory contents changed, running ${DIR_NOTIFYCMD}"
+      ${DIR_NOTIFYCMD}
+      DIR_CHECKSUMS[$DIR_INDEX]=$DIR_NEW_CHECKSUM
+    fi
+  done
+  sleep ${CONF_INTERVAL}
+done

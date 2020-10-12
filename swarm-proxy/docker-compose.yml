@@ -1,0 +1,10 @@
+version: '2'
+services:
+  swarm-proxy:
+    image: qotoorg/swarm-proxy:latest
+    container_name: swarm-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro

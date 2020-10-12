@@ -1,0 +1,12 @@
+#!/bin/bash
+
+source swarm-gen-parse-swarm
+
+LAST_STATE_FILE="/tmp/swarm-gen-last-state"
+
+if test -f "$LAST_STATE_FILE"; then
+  STATE_CHANGE=$(echo "${SERVICE_ENTRIES}" | jq -r --argfile last ${LAST_STATE_FILE} '. as $current | $current != $last')
+else
+  STATE_CHANGE="true"
+fi
+echo "$STATE_CHANGE"

@@ -1,0 +1,186 @@
+#!/bin/bash
+
+if [ ! -z "${1}" ]; then
+  CONFIG_FILE="${1}"
+else
+  CONFIG_FILE="/etc/swarm-gen/swarm-gen.conf"
+fi
+
+CONFIG_TEXT=$(cat ${CONFIG_FILE} | sed '/^[[:space:]]*$/d' | sed '/^#/d' | sed -re '/\[\[[a-z]*\]\]/{N;/\[\[[a-z]*\]\]/!b};/\[\[[a-z]*\]\].*\[\[[a-z]*\]\]/d')
+# | sed 's/^\[\[/\'$'\n\[\[/g' | sed 's/^\[\[/\'$'\n\[\[/g')
+
+#echo "$CONFIG_TEXT"
+
+######################################################
+## Seperate each section of the conf into blocks
+######################################################
+
+GENERAL_BLOCK=""
+DIRECTORY_BLOCKS=()
+TEMPLATE_BLOCKS=()
+TEMPLATE_BLOCK_REGEX='\[\[template\]\][\s]*
+([^\[]*)'
+GENERAL_BLOCK_REGEX='\[\[general\]\][\s]*
+([^\[]*)'
+DIRECTORY_BLOCK_REGEX='\[\[directory\]\][\s]*
+([^\[]*)'
+
+while [ ! -z "${CONFIG_TEXT}" ]
+do
+  if [[ "$CONFIG_TEXT" =~ $TEMPLATE_BLOCK_REGEX ]]; then
+    TEMPLATE_BLOCK=$(echo "${BASH_REMATCH[1]}" | sed '/^[[:space:]]*$/d' | sed 's/^[[:space:]]*//g' | sed 's/[[:space:]]*$//g' | sed 's/[[:space:]]*=[[:space:]]*/=/g')
+    TEMPLATE_BLOCKS+=( "${TEMPLATE_BLOCK}" )
+    CONFIG_TEXT=${CONFIG_TEXT//"${BASH_REMATCH}"/}
+  elif [[ "$CONFIG_TEXT" =~ $DIRECTORY_BLOCK_REGEX ]]; then
+    DIRECTORY_BLOCK=$(echo "${BASH_REMATCH[1]}" | sed '/^[[:space:]]*$/d' | sed 's/^[[:space:]]*//g' | sed 's/[[:space:]]*$//g' | sed 's/[[:space:]]*=[[:space:]]*/=/g')
+    DIRECTORY_BLOCKS+=( "${DIRECTORY_BLOCK}" )
+    CONFIG_TEXT=${CONFIG_TEXT//"${BASH_REMATCH}"/}
+  elif [[ "$CONFIG_TEXT" =~ $GENERAL_BLOCK_REGEX ]]; then
+    GENERAL_BLOCK_MATCH=$(echo "${BASH_REMATCH[1]}" | sed '/^[[:space:]]*$/d' | sed 's/^[[:space:]]*//g' | sed 's/[[:space:]]*$//g' | sed 's/[[:space:]]*=[[:space:]]*/=/g')
+    GENERAL_BLOCK="${GENERAL_BLOCK_MATCH}"$'\n'"${GENERAL_BLOCK}"
+    CONFIG_TEXT=${CONFIG_TEXT//"${BASH_REMATCH}"/}
+  else
+    unset CONFIG_TEXT
+  fi
+done
+
+#echo "General:"
+#echo "$GENERAL_BLOCK"
+#echo
+#echo "DIRECTORY BLOCKS:"
+#echo "${DIRECTORY_BLOCKS[@]}"
+#echo
+#echo "TEMPLATES BLOCKS:"
+#echo "${TEMPLATE_BLOCKS[@]}"
+#echo
+
+######################################################
+## Parse all the template blocks
+######################################################
+
+
+CONFIG_INDEX=0
+CONF_TEMPLATES=()
+CONF_TEMPLATES_DESTS=()
+CONF_TEMPLATES_NOTIFYCMDS=()
+for TEMPLATE_BLOCK in "${TEMPLATE_BLOCKS[@]}"
+do
+  TEMPLATE=$(echo "$TEMPLATE_BLOCK" | grep "^template" | sed 's/^template=["]\{0,1\}//g' | sed 's/["]\{0,1\}$//g' | head -1)
+  DEST=$(echo "$TEMPLATE_BLOCK" | grep "^dest" | sed 's/^dest=["]\{0,1\}//g' | sed 's/["]\{0,1\}$//g' | head -1)
+  NOTIFYCMD=$(echo "$TEMPLATE_BLOCK" | grep "^notifycmd" | sed 's/^notifycmd=["]\{0,1\}//g' | sed 's/["]\{0,1\}$//g' | head -1)
+  WAIT=$(echo "$TEMPLATE_BLOCK" | grep "^wait" | sed 's/^wait=["]\{0,1\}//g' | sed 's/["]\{0,1\}$//g' | head -1)
+
+  if [ ! -z "${TEMPLATE}" ] && [ ! -z "${DEST}" ] ; then
+    CONF_TEMPLATES[${CONFIG_INDEX}]=${TEMPLATE}
+    CONF_TEMPLATES_DESTS[${CONFIG_INDEX}]=${DEST}
+    CONF_TEMPLATES_NOTIFYCMDS[${CONFIG_INDEX}]=${NOTIFYCMD}
+
+    CONFIG_INDEX=$(( CONFIG_INDEX + 1 ))
+  else
+    echo "Bad config file, either template or dest is missing from template section, will attempt to recover, skipping section, had the following values:"
+    echo "${TEMPLATE_BLOCK}"
+    echo "===================="
+  fi
+done
+
+######################################################
+## Parse all the directory blocks
+######################################################
+
+
+CONFIG_INDEX=0
+CONF_DIRECTORIES=()
+CONF_DIRECTORIES_NOTIFYCMDS=()
+for DIRECTORY_BLOCK in "${DIRECTORY_BLOCKS[@]}"
+do
+  DIR=$(echo "$DIRECTORY_BLOCK" | grep "^dir" | sed 's/^dir=["]\{0,1\}//g' | sed 's/["]\{0,1\}$//g' | head -1)
+  NOTIFYCMD=$(echo "$DIRECTORY_BLOCK" | grep "^notifycmd" | sed 's/^notifycmd=["]\{0,1\}//g' | sed 's/["]\{0,1\}$//g' | head -1)
+  WAIT=$(echo "$DIRECTORY_BLOCK" | grep "^wait" | sed 's/^wait=["]\{0,1\}//g' | sed 's/["]\{0,1\}$//g' | head -1)
+
+  if [ ! -z "${DIR}" ] && [ ! -z "${NOTIFYCMD}" ] ; then
+    CONF_DIRECTORIES[${CONFIG_INDEX}]=${DIR}
+    CONF_DIRECTORIES_NOTIFYCMDS[${CONFIG_INDEX}]=${NOTIFYCMD}
+
+    if [ ! -z "${WAIT}" ]; then
+      if [[ $WAIT =~ ^[0-9]+$ ]]; then
+        CONF_DIRECTORIES_WAITS[${CONFIG_INDEX}]=${WAIT}
+      else
+        echo "Directory block had invalid wait setting value of '$WAIT', ignoring and not setting"
+        CONF_DIRECTORIES_WAITS[${CONFIG_INDEX}]="0"
+      fi
+    else
+      CONF_TEMPLATES_WAITS[${CONFIG_INDEX}]="0"
+    fi
+
+    CONFIG_INDEX=$(( CONFIG_INDEX + 1 ))
+  else
+    echo "Bad config file, either dir or notifycmd is missing from directory section, will attempt to recover, skipping section, had the following values:"
+    echo "${DIRECTORY_BLOCK}"
+    echo "===================="
+  fi
+done
+
+############################################################
+## Parse the general block (only one, combined if multiple)
+############################################################
+
+INTERVAL=$(echo "$GENERAL_BLOCK" | grep "^interval" | sed 's/^interval=["]\{0,1\}//g' | sed 's/["]\{0,1\}$//g' | head -1)
+if [ ! -z "${INTERVAL}" ]; then
+  if [[ $INTERVAL =~ ^[1-9][0-9]*$ ]] && (( $INTERVAL > 0)); then
+    CONF_INTERVAL="${INTERVAL}"
+  else
+    echo "General section's interval setting has invalid value of '$INTERVAL', ignoring and setting to default of 5 instead"
+    CONF_INTERVAL="5"
+  fi
+else
+  echo "General section has no interval set, using default value of 5"
+  CONF_INTERVAL="5"
+fi
+
+WAIT=$(echo "$GENERAL_BLOCK" | grep "^wait" | sed 's/^wait=["]\{0,1\}//g' | sed 's/["]\{0,1\}$//g' | head -1)
+if [ ! -z "${WAIT}" ]; then
+  if [[ $WAIT =~ ^[0-9]+$ ]]; then
+    CONF_WAIT="${WAIT}"
+  else
+    echo "General section wait setting has invalid value of '$WAIT', ignoring and setting to default of 5 instead"
+    CONF_WAIT="5"
+  fi
+else
+  echo "General section has no wait set, using default value of 5"
+  CONF_WAIT="5"
+fi
+
+
+
+######################################################
+## Export all the collected conf variables
+######################################################
+
+export CONF_TEMPLATES
+export CONF_TEMPLATES_DESTS
+export CONF_TEMPLATES_NOTIFYCMDS
+export CONF_DIRECTORIES
+export CONF_DIRECTORIES_NOTIFYCMDS
+export CONF_DIRECTORIES_WAITS
+export CONF_INTERVAL
+export CONF_WAIT
+
+#echo "==============="
+#echo "results:"
+#echo "${CONF_TEMPLATES[@]}"
+#echo
+#echo "${CONF_TEMPLATES_DESTS[@]}"
+#echo
+#echo "${CONF_TEMPLATES_NOTIFYCMDS[@]}"
+#echo
+#echo "${CONF_DIRECTORIES[@]}"
+#echo
+#echo "${CONF_DIRECTORIES_NOTIFYCMDS[@]}"
+#echo
+#echo "${CONF_DIRECTORIES_WAITS[@]}"
+#echo
+#echo "${CONF_INTERVAL}"
+#echo
+#echo "${CONF_WAIT}"
+#echo
+#echo "=============="

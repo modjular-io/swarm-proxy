@@ -1,0 +1,137 @@
+[[template]]
+template = "templates/nginx.tmpl"
+dest = "/tmp/nginx.conf"
+notifycmd = "/etc/init.d/nginx reload"
+
+[[template]]
+template = "templates/fluentd.conf.tmpl"
+dest = "/tmp/fluentd.conf"
+watch = true
+notifycmd = "echo test"
+
+[[template]]
+template = "templates/etcd.tmpl"
+dest = "/tmp/etcd.sh"
+watch = true
+notifycmd = /bin/bash /tmp/etcd.sh
+interval = 10
+[[template]]
+template = "templates/etcd.tmpl"
+dest = "/tmp/etcd.sh"
+watch = true
+notifycmd = "/bin/bash /tmp/etcd.sh"
+wait = 10
+
+
+
+
+[[template]]
+template = "templates/etcd.tmpl"
+dest = /tmp/etcd.sh    
+watch = true
+notifycmd = "/bin/bash /tmp/etcd.sh"
+interval = 10
+
+[[directory]]
+dir = /etc/nginx/conf.d/
+notifycmd = some thing we do
+wait = 10
+wait = 9
+
+#[[template]]
+#template = "templates/etcd.tmplllll"
+#dest = /tmp/etcd.shhhhh
+#watch = true
+#notifycmd = "/bin/bash /tmp/etcd.sh"
+#interval = 100
+
+[[directory]]
+#dir = /etc/nginx/conf.dddd/
+#notifycmd = some thing we doooo
+#wait = 100
+#wait = 90
+
+[[directory]]
+dir = /etc/nginx/conf.d/stuff/
+notifycmd = some thing we do
+wait = 9
+
+[[directory]]
+dir = /etc/nginx/vhost.d/
+
+[[directory]]
+[[directory]]
+
+[[template]]
+[[template]]
+[[template]]
+dest = /tmp/etcd.sh    
+watch = true
+notifycmd = "/bin/bash /tmp/etcd.sh"
+wait = 10
+
+[[template]]
+template = "templates/etcd.tmpl"
+watch = true
+notifycmd = "/bin/bash /tmp/etcd.sh"
+wait = 10
+
+[[template]]
+template = "templates/etcd.tmpl"
+dest = "/tmp/etcd.sh"
+watch = burgers
+notifycmd = "/bin/bash /tmp/etcd.sh"
+wait = 10
+
+[[general]]
+interval = -2
+intercal = meat
+interval =2
+wait = 5
+[[general]]
+interval = -2
+intercal = meat
+interval =2
+
+
+
+[[general]]
+interval = -2
+intercal = meat
+interval =2
+
+[[template]]
+template = "templates/etcd.tmpl"
+dest = "/tmp/etcd.sh"
+watch = true
+notifycmd = "/bin/bash /tmp/etcd.sh"
+interval = 0
+
+[[template]]
+template = "templates/etcd.tmpl"
+dest = "/tmp/etcd.sh"
+watch = true
+notifycmd = "/bin/bash /tmp/etcd.sh"
+interval = -3
+
+[[template]]
+template = "templates/etcd.tmpl"
+dest = "/tmp/etcd.sh"
+watch = true
+notifycmd = "/bin/bash /tmp/etcd.sh"
+wait = 6.7
+
+[[template]]
+template = "templates/etcd.tmpl"
+dest = "/tmp/etcd.sh"
+watch = true
+notifycmd = "/bin/bash /tmp/etcd.sh"
+interval = cheese
+
+
+[[template]]
+template = templates/etcd.tmpl
+dest = "/tmp/etcd.sh"
+watch = true
+notifycmd =/bin/bash /tmp/etcd.sh
+interval =      10

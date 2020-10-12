@@ -1,0 +1,97 @@
+#!/bin/bash
+
+source swarm-gen-parse-conf
+
+SERVICE_BLOCK_REGEX='(### BEGIN SERVICE ###.*### END SERVICE ###)'
+
+
+while test -f "/etc/swarm-gen/swarm-gen.conf"
+do
+  if [[ $(swarm-gen-check-state) == "true" ]]; then
+    echo "state updated, waiting ${CONF_WAIT} seconds to regen"
+    sleep $CONF_WAIT
+    source swarm-gen-parse-swarm
+
+    #echo "entries parsed:"
+    #echo "${SERVICE_ENTRIES}"
+    #echo "-------------------"
+
+    for (( CONF_INDEX=0; $CONF_INDEX < ${#CONF_TEMPLATES[@]}; CONF_INDEX++ ))
+    do
+      CONF_TEMPLATE="${CONF_TEMPLATES[$CONF_INDEX]}"
+      CONF_DEST="${CONF_TEMPLATES_DESTS[$CONF_INDEX]}"
+      CONF_NOTIFYCMD="${CONF_TEMPLATES_NOTIFYCMDS[$CONF_INDEX]}"
+
+      #process the template
+      TEMPLATE_TEXT=$(cat $CONF_TEMPLATE)
+      TEMPLATE_DONE="false"
+
+      #echo "processing template:"
+      #echo "$TEMPLATE_TEXT"
+      #echo "------------------"
+      unset TEMPLATE_DONE
+      while [ -z "${TEMPLATE_DONE}" ]
+      do
+        #echo "replacing..."
+        if [[ "$TEMPLATE_TEXT" =~ $SERVICE_BLOCK_REGEX ]]; then
+          SERVICE_BLOCK="${BASH_REMATCH[1]}"
+          #echo "Service block is:"
+          #echo "${SERVICE_BLOCK}"
+
+          #echo "processing service names..."
+          BLOCKS_PROCESSED=""
+          for SERVICE_NAME in ${SERVICE_NAMES[@]};
+          do
+            SERVICE_ENTRY=$(echo "$SERVICE_ENTRIES" | jq -r ".[\"${SERVICE_NAME}\"]")
+            #echo "${SERVICE_ENTRY}"
+            #echo "========="
+
+            PROXY_ACTIVE=$(echo "$SERVICE_ENTRY" | jq -r ".[\"swarm-proxy\"]")
+            PROXY_HOST=$(echo "$SERVICE_ENTRY" | jq -r ".[\"swarm-proxy-host\"]")
+            PROXY_PORT=$(echo "$SERVICE_ENTRY" | jq -r ".[\"swarm-proxy-port\"]")
+            PROXY_UPSTREAM=$(echo "$SERVICE_ENTRY" | jq -r ".[\"swarm-proxy-upstream\"]")
+            PROXY_EMAIL=$(echo "$SERVICE_ENTRY" | jq -r ".[\"swarm-proxy-email\"]")
+            #echo "$PROXY_HOST"
+
+            if [ ! -z "${PROXY_ACTIVE}" ] && [[ "${PROXY_ACTIVE}" == "true" ]]; then
+              BLOCK_PROCESSED=$(echo "$SERVICE_BLOCK" | sed '/\#\#\# BEGIN SERVICE \#\#\#/d'  | sed '/\#\#\# END SERVICE \#\#\#/d')
+              BLOCK_PROCESSED=$(echo "$BLOCK_PROCESSED" | sed "s/\${HOST}/${PROXY_HOST}/g"  | sed "s/\${PORT}/${PROXY_PORT}/g"  | sed "s/\${UPSTREAM}/${PROXY_UPSTREAM}/g"  | sed "s/\${EMAIL}/${PROXY_EMAIL}/g" )
+              BLOCKS_PROCESSED="${BLOCK_PROCESSED}"$'\n'"${BLOCKS_PROCESSED}"
+              #echo "Processed:"
+              #echo "$BLOCK_PROCESSED"
+              #echo "-------------------"
+            fi
+          done
+
+
+          #echo "Processed blocks are:"
+          #echo "${BLOCKS_PROCESSED}"
+          #echo "--------------------"
+          TEMPLATE_TEXT=${TEMPLATE_TEXT/"${SERVICE_BLOCK}"/"$BLOCKS_PROCESSED"}
+          #echo "${firstString/Suzi/$secondString}"
+        else
+          #echo "template done"
+          TEMPLATE_DONE="true"
+        fi
+      done
+
+      echo "Template ${CONF_TEMPLATE} updated:"
+      echo "$TEMPLATE_TEXT"
+      echo
+      echo "------------------------"
+      echo
+      if [ ! -z "${TEMPLATE_TEXT}" ]; then
+        echo "${TEMPLATE_TEXT}" > ${CONF_DEST}
+      fi
+
+      if [ ! -z "${CONF_NOTIFYCMD}" ]; then
+        echo "Executing notify command: ${CONF_NOTIFYCMD}"
+        $CONF_NOTIFYCMD
+      fi
+    done
+
+    swarm-gen-update-state
+  else
+    sleep "$CONF_INTERVAL"
+  fi
+done

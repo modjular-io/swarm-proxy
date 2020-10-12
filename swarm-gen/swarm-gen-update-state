@@ -1,0 +1,6 @@
+#!/bin/bash
+
+source swarm-gen-parse-swarm
+
+LAST_STATE_FILE="/tmp/swarm-gen-last-state"
+echo "${SERVICE_ENTRIES}" > ${LAST_STATE_FILE}

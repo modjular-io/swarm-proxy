@@ -1,0 +1,14 @@
+#!/bin/bash
+SERVICE_ENTRIES=""
+SERVICE_NAMES=($(docker service ls | sed -n '1!p' | sed 's/^[^[:space:]]* [[:space:]]*\([^[:space:]]*\) .*/\1/g'))
+for SERVICE_NAME in "${SERVICE_NAMES[@]}";
+do
+  SERVICE_ENTRY="\"${SERVICE_NAME}\": $(docker service inspect "${SERVICE_NAME}" | jq -r '.[].Spec.Labels')"
+  SERVICE_ENTRIES="${SERVICE_ENTRIES}${SERVICE_ENTRY},"
+done
+SERVICE_ENTRIES="{ ${SERVICE_ENTRIES%?} }"
+# Sort and format it so we can more easily compare down the line
+SERVICE_ENTRIES=$(echo "$SERVICE_ENTRIES" | jq -r '. | (.. | arrays) |= sort')
+
+export SERVICE_NAMES
+export SERVICE_ENTRIES

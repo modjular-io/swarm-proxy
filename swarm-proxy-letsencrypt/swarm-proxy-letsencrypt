@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# SIGTERM-handler
+term_handler() {
+    [[ -n "$letsencrypt_service_pid" ]] && kill "$letsencrypt_service_pid"
+
+    # shellcheck source=functions.sh
+    source /app/functions.sh
+    remove_all_standalone_configurations
+
+    exit 0
+}
+
+trap 'term_handler' INT QUIT TERM
+
+/app/letsencrypt_service &
+letsencrypt_service_pid=$!
+
+# wait "indefinitely"
+while [[ -e /proc/$letsencrypt_service_pid ]]; do
+    wait $letsencrypt_service_pid # Wait for any signals or end of execution of docker-gen
+done
+
+# Stop container properly
+term_handler
