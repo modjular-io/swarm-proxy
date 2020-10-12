@@ -7,7 +7,7 @@ server {
     server_name ${HOST};
     listen 80 ;
 
-    location /.well-known/acme-challenge/ {
+    location ^~ /.well-known/acme-challenge/ {
       auth_basic off;
       allow all;
       root /usr/share/nginx/html;
