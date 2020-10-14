@@ -4,20 +4,11 @@ upstream ${HOST}_upstream {
 }
 
 server {
-    server_name ${HOST};
-    listen 80 ;
+  server_name ${HOST};
+  listen 80;
 
-    location ^~ /.well-known/acme-challenge/ {
-      auth_basic off;
-      allow all;
-      root /usr/share/nginx/html;
-      try_files $uri =404;
-      break;
-  }
-
-
-  include /opt/nginx/vhost.d/${HOST}*;
-  include /opt/nginx/vhost.d/default*;
+  include /etc/nginx/vhost.d/${HOST}*;
+  include /etc/nginx/vhost.d/default*;
 
   location / {
     proxy_pass http://${HOST}_upstream;

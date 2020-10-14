@@ -73,23 +73,21 @@ proxy_set_header Proxy "";
 ##                         Catch all Servers
 ############################################################################
 
+upstream gitlab_pages_upstream {
+  server host.docker.internal:8080;
+}
+
 server {
     listen 80 default_server;
     server_name _;
 
-    location ^~ /.well-known/acme-challenge/ {
-        auth_basic off;
-        auth_request off;
-        allow all;
-        root /usr/share/nginx/html;
-        try_files \$uri =404;
-        break;
-    }
+    include /etc/nginx/vhost.d/git.qoto.org*;
+    include /etc/nginx/vhost.d/default*;
 
     location / {
-        root   /usr/share/nginx/html;
-        index  index.html index.htm;
+      proxy_pass http://gitlab_pages_upstream;
     }
 }
+
 
 EOF
