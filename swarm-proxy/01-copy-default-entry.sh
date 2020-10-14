@@ -2,7 +2,6 @@
 set -e
 
 echo "Copying default.conf to conf.d directory"
-rm -f /etc/nginx/conf.d/default.conf
 cat > "/etc/nginx/conf.d/default.conf" << EOF
 ############################################################################
 ##                         General Configuration
