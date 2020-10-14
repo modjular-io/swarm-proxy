@@ -2,6 +2,7 @@
 set -e
 
 echo "Copying default.conf to conf.d directory"
+rm -f /etc/nginx/conf.d/default.conf
 cat > "/etc/nginx/conf.d/default.conf" << EOF
 ############################################################################
 ##                         General Configuration
@@ -51,7 +52,7 @@ access_log off;
 		ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384';
 		ssl_prefer_server_ciphers off;
 
-resolver 10.0.0.2;
+#resolver 10.0.0.2;
 
 # HTTP 1.1 support
 proxy_http_version 1.1;
