@@ -180,3 +180,13 @@ cat > "/usr/share/nginx/html/.well-known/acme-challenge/active.html" << EOF
 </body>
 </html>
 EOF
+
+
+cat > "/etc/nginx/conf.d/lb.qoto.org-activate.conf" << EOF
+server {
+    server_name lb.qoto.org;
+    listen 80;
+
+    include /etc/nginx/vhost.d/default*;
+}
+EOF

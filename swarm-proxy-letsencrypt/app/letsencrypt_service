@@ -331,7 +331,7 @@ function update_certs {
 server {
   server_name ${LE_HOST};
 
-  listen 443 ssl http2 ;
+  listen 444 ssl http2 ;
   ssl_session_timeout 5m;
   ssl_session_cache shared:SSL:50m;
   ssl_session_tickets off;

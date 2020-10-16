@@ -1,7 +1,36 @@
 #!/bin/bash
 set -e
 
-echo "Copying default.conf to conf.d directory"
+echo "Copying serv.d/default.conf to serv.d directory"
+cat > "/etc/nginx/serv.d/default.conf" << EOF
+events {
+    worker_connections  1024;
+}
+
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '\$remote_addr - \$remote_user [\$time_local] "\$request" '
+                      '\$status $body_bytes_sent "\$http_referer" '
+                      '"\$http_user_agent" "\$http_x_forwarded_for"';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    include /etc/nginx/conf.d/*;
+}
+EOF
+
+
+echo "Copying conf.d/default.conf to conf.d directory"
 cat > "/etc/nginx/conf.d/default.conf" << EOF
 ############################################################################
 ##                         General Configuration
@@ -51,7 +80,7 @@ access_log off;
 		ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384';
 		ssl_prefer_server_ciphers off;
 
-#resolver 10.0.0.2;
+resolver 10.0.0.2;
 
 # HTTP 1.1 support
 proxy_http_version 1.1;
@@ -73,21 +102,17 @@ proxy_set_header Proxy "";
 ##                         Catch all Servers
 ############################################################################
 
-upstream gitlab_pages_upstream {
-  server host.docker.internal:8080;
+upstream fallthrough_http_upstream {
+  server ${SWARM_PROXY_FALLTHROUGH_HTTP_HOST:-host.docker.internal}:${SWARM_PROXY_FALLTHROUGH_HTTP_PORT:-8080};
 }
 
 server {
     listen 80 default_server;
     server_name _;
 
-    include /etc/nginx/vhost.d/git.qoto.org*;
-    include /etc/nginx/vhost.d/default*;
-
     location / {
-      proxy_pass http://gitlab_pages_upstream;
+      proxy_pass http://fallthrough_http_upstream;
     }
 }
-
 
 EOF

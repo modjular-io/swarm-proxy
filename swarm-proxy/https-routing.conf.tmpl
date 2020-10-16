@@ -1,0 +1,24 @@
+stream {
+
+    map $ssl_preread_server_name $name {
+### BEGIN SERVICE ###
+        ${HOST} local_https;
+### END SERVICE ###
+        default fallthrough_https_upstream;
+    }
+
+    upstream fallthrough_https_upstream {
+        server host.docker.internal:8080;
+    }
+
+    upstream local_https {
+        server 127.0.0.1:444;
+    }
+
+    server {
+        listen 443;
+        proxy_pass $name;
+        ssl_preread on;
+    }
+}
+
