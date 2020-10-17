@@ -40,9 +40,12 @@ do
 
           #echo "processing service names..."
           BLOCKS_PROCESSED=""
-          for SERVICE_NAME in ${SERVICE_NAMES[@]};
+          for SERVICE_NAME in ${SERVICE_NAMES[@]}
           do
             SERVICE_ENTRY=$(echo "$SERVICE_ENTRIES" | jq -r ".[\"${SERVICE_NAME}\"]")
+            SUBSERVICE_NAMES=$(echo "${SERVICE_ENTRY}" | jq -r '. | keys' | sed 's/^[[:space:]]*\"//g' | sed 's/[[:space:]]*$//g' | sed 's/[[:space:]]*,$//g' | sed 's/\"$//g'  | grep "swarm-proxy-[^_]\{1,\}_.\{1,\}" | sed 's/^[^_]*_//g' | sort | uniq)
+
+            #echo "Subservice names: ${SUBSERVICE_NAMES[@]}"
             #echo "${SERVICE_ENTRY}"
             #echo "========="
 
@@ -57,10 +60,24 @@ do
               BLOCK_PROCESSED=$(echo "$SERVICE_BLOCK" | sed '/\#\#\# BEGIN SERVICE \#\#\#/d'  | sed '/\#\#\# END SERVICE \#\#\#/d')
               BLOCK_PROCESSED=$(echo "$BLOCK_PROCESSED" | sed "s/\${HOST}/${PROXY_HOST}/g"  | sed "s/\${PORT}/${PROXY_PORT}/g"  | sed "s/\${UPSTREAM}/${PROXY_UPSTREAM}/g"  | sed "s/\${EMAIL}/${PROXY_EMAIL}/g" )
               BLOCKS_PROCESSED="${BLOCK_PROCESSED}"$'\n'"${BLOCKS_PROCESSED}"
+
+              for SUBSERVICE_NAME in ${SUBSERVICE_NAMES[@]}
+              do
+                  PROXY_HOST=$(echo "$SERVICE_ENTRY" | jq -r ".[\"swarm-proxy-host_${SUBSERVICE_NAME}\"]")
+                  PROXY_PORT=$(echo "$SERVICE_ENTRY" | jq -r ".[\"swarm-proxy-port_${SUBSERVICE_NAME}\"]")
+                  PROXY_UPSTREAM=$(echo "$SERVICE_ENTRY" | jq -r ".[\"swarm-proxy-upstream_${SUBSERVICE_NAME}\"]")
+                  PROXY_EMAIL=$(echo "$SERVICE_ENTRY" | jq -r ".[\"swarm-proxy-email_${SUBSERVICE_NAME}\"]")
+
+                  BLOCK_PROCESSED=$(echo "$SERVICE_BLOCK" | sed '/\#\#\# BEGIN SERVICE \#\#\#/d'  | sed '/\#\#\# END SERVICE \#\#\#/d')
+                  BLOCK_PROCESSED=$(echo "$BLOCK_PROCESSED" | sed "s/\${HOST}/${PROXY_HOST}/g"  | sed "s/\${PORT}/${PROXY_PORT}/g"  | sed "s/\${UPSTREAM}/${PROXY_UPSTREAM}/g"  | sed "s/\${EMAIL}/${PROXY_EMAIL}/g" )
+                  BLOCKS_PROCESSED="${BLOCK_PROCESSED}"$'\n'"${BLOCKS_PROCESSED}"
+              done
+
               #echo "Processed:"
               #echo "$BLOCK_PROCESSED"
               #echo "-------------------"
             fi
+
           done
 
 
