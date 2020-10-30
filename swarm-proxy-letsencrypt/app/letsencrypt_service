@@ -347,6 +347,10 @@ server {
   include /etc/nginx/vhost.d/default*;
 
   location / {
+    include /etc/nginx/loc.d/${LE_HOST}-https-*;
+    include /etc/nginx/loc.d/${LE_HOST}-all-*;
+    include /etc/nginx/loc.d/default*;
+
     proxy_pass http://${LE_HOST}_upstream;
   }
 }

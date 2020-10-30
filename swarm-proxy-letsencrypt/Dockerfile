@@ -52,6 +52,7 @@ RUN rm -f /docker-run.d/nginx-run.sh && \
     mkdir -p /etc/nginx/dhparam && \
     mkdir -p /etc/nginx/conf.d && \
     mkdir -p /etc/nginx/vhost.d && \
+    mkdir -p /etc/nginx/loc.d && \
     mkdir -p /usr/share/nginx/html/.well-known/acme-challenge/
 
 VOLUME ["/etc/nginx/certs", "/etc/nginx/dhparam", "/etc/nginx/conf.d", "/etc/nginx/vhost.d", "/usr/share/nginx/html"]
