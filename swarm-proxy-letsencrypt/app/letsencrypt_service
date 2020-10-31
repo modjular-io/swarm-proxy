@@ -331,7 +331,7 @@ function update_certs {
 server {
   server_name ${LE_HOST};
 
-  listen 444 ssl http2 ;
+  listen 444 ssl http2 proxy_protocol;
   ssl_session_timeout 5m;
   ssl_session_cache shared:SSL:50m;
   ssl_session_tickets off;
@@ -350,6 +350,11 @@ server {
     include /etc/nginx/loc.d/${LE_HOST}-https-*;
     include /etc/nginx/loc.d/${LE_HOST}-all-*;
     include /etc/nginx/loc.d/default*;
+
+    proxy_set_header Host            \$host;
+    proxy_set_header X-Real-IP       \$proxy_protocol_addr;
+    proxy_set_header X-Forwarded-For \$proxy_protocol_addr;
+    proxy_set_header X-Forwarded-Proto https;
 
     proxy_pass http://${LE_HOST}_upstream;
   }

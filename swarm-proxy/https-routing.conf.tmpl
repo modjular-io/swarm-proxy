@@ -15,10 +15,11 @@ stream {
         server 127.0.0.1:444;
     }
 
+    proxy_protocol on;
+
     server {
         listen 443;
         proxy_pass $name;
         ssl_preread on;
     }
 }
-
