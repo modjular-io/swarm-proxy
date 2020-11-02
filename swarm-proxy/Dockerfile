@@ -2,6 +2,13 @@ FROM modjular/swarm-gen:latest
 
 LABEL maintainer="Jeffrey Phillips Freeman the@jeffreyfreeman.me"
 
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      curl && \
+    apt-get clean && \
+    rm -r /var/lib/apt/lists/*
+
 # Configure Nginx and apply fix for very long server names
 RUN sed -i 's/worker_processes  1/worker_processes  auto/' /etc/nginx/nginx.conf && \
     mkdir -p /etc/swarm-proxy && \
