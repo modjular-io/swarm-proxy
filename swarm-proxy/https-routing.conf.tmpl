@@ -8,7 +8,7 @@ stream {
     }
 
     upstream fallthrough_https_upstream {
-        server host.docker.internal:4443;
+        server 127.0.0.1:445;
     }
 
     upstream local_https {
@@ -21,5 +21,17 @@ stream {
         listen 443;
         proxy_pass $name;
         ssl_preread on;
+    }
+
+    upstream fallthrough_final {
+        server host.docker.internal:4443;
+    }
+
+
+    server {
+        listen 445 proxy_protocol;
+        proxy_pass fallthrough_final;
+        ssl_preread on;
+        proxy_protocol off;
     }
 }
