@@ -30,8 +30,9 @@ RUN mkdir -p /etc/nginx/certs && \
     mkdir -p /etc/nginx/dhparam && \
     mkdir -p /etc/nginx/conf.d && \
     mkdir -p /etc/nginx/vhost.d && \
+    mkdir -p /etc/nginx/strm.d && \
     mkdir -p /etc/nginx/loc.d
 
-VOLUME ["/etc/nginx/certs", "/etc/nginx/dhparam", "/etc/nginx/conf.d", "/etc/nginx/vhost.d", "/etc/nginx/serv.d", "/usr/share/nginx/html"]
+VOLUME ["/etc/nginx/certs", "/etc/nginx/dhparam", "/etc/nginx/conf.d", "/etc/nginx/vhost.d", "/etc/nginx/serv.d", "/etc/nginx/strm.d", "/usr/share/nginx/html"]
 
 ENV DOCKER_HOST unix:///var/run/docker.sock
