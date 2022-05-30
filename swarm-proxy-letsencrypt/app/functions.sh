@@ -8,15 +8,20 @@ function lc {
 DEBUG="$(lc "$DEBUG")"
 
 [[ -z "${VHOST_DIR:-}" ]] && \
- declare -r VHOST_DIR=/etc/nginx/vhost.d
+   declare -r VHOST_DIR=/etc/nginx/vhost.d
 [[ -z "${START_HEADER:-}" ]] && \
- declare -r START_HEADER='## Start of configuration add by letsencrypt container'
+   declare -r START_HEADER='## Start of configuration add by letsencrypt container'
 [[ -z "${END_HEADER:-}" ]] && \
- declare -r END_HEADER='## End of configuration add by letsencrypt container'
+   declare -r END_HEADER='## End of configuration add by letsencrypt container'
+if [[ -z "${LB_DOMAIN:-}" ]]; then
+   echo "Error: LB_DOMAIN env variable not set. Caught in functions script."
+   exit 1
+fi
+
 
 function check_nginx_proxy_container_run {
     # TODO make the load balancer address configurable.
-    if curl --head --silent --fail http://lb.qoto.org/.well-known/acme-challenge/active.html > /dev/null;
+    if curl --head --silent --fail http://${LB_DOMAIN}/.well-known/acme-challenge/active.html > /dev/null;
     then
         return 0
     else

@@ -148,6 +148,12 @@ if [[ "${ACME_CA_URI:-}" =~ $acmev1_r ]]; then
     echo "Please use one of Let's Encrypt ACME v2 endpoints instead."
     exit 1
 fi
+
+if [[ -z "${LB_DOMAIN:-}" ]]; then
+    echo "Error: LB_DOMAIN env variable not set. Caught in entry script."
+    exit 1
+fi
+
 check_docker_socket
 check_writable_directory '/etc/nginx/certs'
 check_writable_directory '/etc/nginx/vhost.d'
@@ -182,9 +188,9 @@ cat > "/usr/share/nginx/html/.well-known/acme-challenge/active.html" << EOF
 EOF
 
 
-cat > "/etc/nginx/conf.d/lb.qoto.org-activate.conf" << EOF
+cat > "/etc/nginx/conf.d/${LB_DOMAIN}-activate.conf" << EOF
 server {
-    server_name lb.qoto.org;
+    server_name ${LB_DOMAIN};
     listen 80;
 
     include /etc/nginx/vhost.d/default*;
