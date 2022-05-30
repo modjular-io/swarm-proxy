@@ -26,7 +26,8 @@ RUN sync && \
     python3 -m pip install -U \
       pip \
       setuptools \
-      wheel && \
+      wheel \
+      six && \
     python3 -m pip install . && \
     cd / && \
     rm -rf /src && \
